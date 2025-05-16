@@ -1,4 +1,5 @@
 #(C)Tsubasa Kato - Inspire Search Corp. 5/17/2025 - 1:47AM JST
+#Updated: 5/17/2025 - 2:25AM JST
 from __future__ import annotations
 
 import itertools
@@ -30,7 +31,7 @@ client = Client(host="http://localhost:11434")  # Ollama daemon must be alive
 ###############################################################################
 MODEL_NAME = "phi4:latest"
 GENERATIONS = 3
-POP_SIZE = 1
+POP_SIZE = 5
 MUTATION_RATE = 0.35
 
 TOPIC_MAP = {
