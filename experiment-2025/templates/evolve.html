@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Genetic Code Evolution Stream</title>
+  <style>
+    body { font-family: monospace; background: #181818; color: #e0e0e0; margin: 0; padding: 0; }
+    #container { max-width: 900px; margin: 40px auto; padding: 24px; background: #232323; border-radius: 8px; }
+    h1 { color: #7fd1b9; }
+    #log { background: #222; padding: 10px; min-height: 80px; border-radius: 4px; margin-bottom: 16px; font-size: 1em; }
+    #code {
+      background: #161b22;
+      padding: 16px;
+      min-height: 200px;
+      border-radius: 4px;
+      font-size: 1.1em;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      color: #d7eaff;
+      overflow-x: auto;
+    }
+    #final { background: #233; padding: 10px; border-radius: 4px; margin-top: 18px; color: #b5f4a5; }
+    #status { margin-top: 12px; color: #ffb86c; }
+    .label { color: #7fd1b9; }
+    #controls { margin-bottom: 18px; }
+    button { font-family: inherit; font-size: 1em; margin-left: 8px; padding: 4px 12px; border-radius: 4px; border: none; background: #7fd1b9; color: #181818; cursor: pointer; }
+    button:disabled { background: #444; color: #888; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h1>Genetic Code Evolution Stream</h1>
+    <form id="seedForm">
+      <div id="controls">
+        <label for="seeds">Seeds (comma-separated):</label>
+        <input type="text" id="seeds" name="seeds" value="automatic,programming">
+        <button type="submit" id="startBtn">Start Evolution</button>
+        <button type="button" id="stopBtn" disabled>Stop</button>
+      </div>
+    </form>
+    <div id="log"></div>
+    <div class="label">Current Code:</div>
+    <div id="code"></div>
+    <div id="final"></div>
+    <div id="status"></div>
+  </div>
+  <script>
+    const logDiv = document.getElementById('log');
+    const codeDiv = document.getElementById('code');
+    const finalDiv = document.getElementById('final');
+    const statusDiv = document.getElementById('status');
+    const seedForm = document.getElementById('seedForm');
+    const seedsInput = document.getElementById('seeds');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+
+    let evtSource = null;
+
+    function resetUI() {
+      logDiv.innerHTML = '';
+      codeDiv.textContent = '';
+      finalDiv.innerHTML = '';
+      statusDiv.textContent = '';
+    }
+
+    function stopStream() {
+      if (evtSource) {
+        evtSource.close();
+        evtSource = null;
+        statusDiv.textContent = 'Streaming stopped by user.';
+        stopBtn.disabled = true;
+        startBtn.disabled = false;
+      }
+    }
+
+    seedForm.onsubmit = function(e) {
+      e.preventDefault();
+      resetUI();
+
+      stopStream(); // close any existing stream
+
+      const seeds = encodeURIComponent(seedsInput.value.trim());
+      const sseUrl = `/evolve_stream?seeds=${seeds}`;
+      evtSource = new EventSource(sseUrl);
+
+      stopBtn.disabled = false;
+      startBtn.disabled = true;
+      statusDiv.textContent = 'Connecting...';
+
+      evtSource.addEventListener('log', function(e) {
+        logDiv.innerHTML += e.data + '<br>';
+        logDiv.scrollTop = logDiv.scrollHeight;
+      });
+
+      evtSource.addEventListener('code', function(e) {
+        //Output data
+        e.data = e.data.replace(/(\r\n|\r|\n)/g, '<br>');
+        codeDiv.textContent += e.data;
+
+        codeDiv.scrollTop = codeDiv.scrollHeight;
+
+
+      });
+
+      evtSource.addEventListener('done', function(e) {
+        const result = JSON.parse(e.data);
+        finalDiv.innerHTML = `<b>Evolution complete!</b><br>
+          <span class="label">Best fitness:</span> ${result.fitness}<br>
+          <span class="label">Lines:</span> ${result.line_count}`;
+        statusDiv.textContent = 'Stream finished.';
+        stopBtn.disabled = true;
+        startBtn.disabled = false;
+        evtSource.close();
+        evtSource = null;
+      });
+
+      evtSource.onopen = function() {
+        statusDiv.textContent = 'Connected. Streaming generations...';
+      };
+
+      evtSource.onerror = function(e) {
+        statusDiv.textContent = 'Connection lost or failed. Please refresh or try again.';
+        stopBtn.disabled = true;
+        startBtn.disabled = false;
+        if (evtSource) {
+          evtSource.close();
+          evtSource = null;
+        }
+      };
+    };
+
+    stopBtn.onclick = function() {
+      stopStream();
+    };
+  </script>
+</body>
+</html>
