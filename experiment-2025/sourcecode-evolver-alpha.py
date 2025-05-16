@@ -1,3 +1,4 @@
+#(C)Tsubasa Kato - Inspire Search Corp. 5/17/2025 - 1:47AM JST
 from __future__ import annotations
 
 import itertools
